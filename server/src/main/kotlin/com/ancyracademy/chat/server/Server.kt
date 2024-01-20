@@ -114,13 +114,11 @@ class Server {
             }
 
             is GetUsersCommand -> {
-              val response = app.handle(rawMessage as GetUsersCommand)
-              send(response)
+              send(app.handle(rawMessage as GetUsersCommand))
             }
 
             is GetMessagesCommand -> {
-              val response = app.handle(rawMessage as GetMessagesCommand)
-              send(response)
+              send(app.handle(rawMessage as GetMessagesCommand))
             }
           }
         }

@@ -39,7 +39,8 @@ class App {
 
   fun handle(command: GetUsersCommand): UserListResponse {
     val formattedUsers =
-      users.getAll().map { UserListResponse.User(it.id.toString()) }
+      users.getAll()
+        .map { UserListResponse.User(it.id.toString(), it.username) }
         .toTypedArray()
 
     return UserListResponse(formattedUsers)
@@ -49,7 +50,8 @@ class App {
     val messages = messages.getAll().map {
       MessageListResponse.Message(
         it.author.username,
-        it.content
+        it.content,
+        it.date
       )
     }
 
