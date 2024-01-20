@@ -16,6 +16,10 @@ class MainApplication : Application() {
     stage.title = "Chat - Serveur"
     stage.scene = scene
     stage.show()
+
+    stage.setOnCloseRequest {
+      server.stop()
+    }
   }
 }
 

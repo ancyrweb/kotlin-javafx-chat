@@ -58,8 +58,8 @@ class App {
     return MessageListResponse(messages.toTypedArray())
   }
 
-  fun connect(): User {
-    val user = User(UUID.randomUUID(), "anonymous")
+  fun connect(name: String): User {
+    val user = User(UUID.randomUUID(), name)
     users.add(user)
 
     listeners.forEach {

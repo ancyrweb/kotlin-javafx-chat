@@ -1,9 +1,7 @@
 package com.ancyracademy.chat.server
 
 import com.ancyracademy.chat.protocol.ProtocolMessage
-import com.ancyracademy.chat.protocol.commands.GetMessagesCommand
-import com.ancyracademy.chat.protocol.commands.GetUsersCommand
-import com.ancyracademy.chat.protocol.commands.SendMessageCommand
+import com.ancyracademy.chat.protocol.commands.*
 import com.ancyracademy.chat.protocol.events.NewMessageEvent
 import com.ancyracademy.chat.protocol.events.NewUserEvent
 import com.ancyracademy.chat.protocol.events.UserDisconnectedEvent
@@ -66,9 +64,8 @@ class Server {
 
         println("New client connected: ${socket.inetAddress.hostAddress}")
 
-        val user = app.connect()
         val client =
-          ClientConnection(socket, user)
+          ClientConnection(socket)
 
         clients.add(client)
         executorService.execute(client)
@@ -95,10 +92,9 @@ class Server {
     clients.forEach { it.send(message) }
   }
 
-  inner class ClientConnection(
-    private val socket: Socket,
-    private val user: User
-  ) : Runnable {
+  inner class ClientConnection(private val socket: Socket) : Runnable {
+    private var user: User? = null
+
     private val reader: ObjectInputStream =
       ObjectInputStream(socket.getInputStream())
     private val writer: ObjectOutputStream =
@@ -109,8 +105,21 @@ class Server {
         var rawMessage: Any
         while (reader.readObject().also { rawMessage = it } != null) {
           when (rawMessage) {
+            is LoginCommand -> {
+              val command = rawMessage as LoginCommand
+              this.user = app.connect(command.username)
+            }
+
+            is LogoutCommand -> {
+              user?.let {
+                app.disconnect(it)
+              }
+            }
+
             is SendMessageCommand -> {
-              app.handle(rawMessage as SendMessageCommand, user)
+              user?.let {
+                app.handle(rawMessage as SendMessageCommand, it)
+              }
             }
 
             is GetUsersCommand -> {
@@ -124,8 +133,13 @@ class Server {
         }
       } catch (e: IOException) {
         println("Client disconnected: ${socket.inetAddress.hostAddress}")
+
         clients.remove(this)
-        app.disconnect(user)
+
+        user?.let {
+          app.disconnect(it)
+        }
+
         socket.close()
       }
     }
