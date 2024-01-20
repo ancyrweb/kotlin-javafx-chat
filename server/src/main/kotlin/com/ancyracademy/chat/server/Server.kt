@@ -37,18 +37,18 @@ class Server {
       override fun onNewMessage(message: Message) {
         broadcast(
           NewMessageEvent(
-            message.author.id.toString(),
+            message.author.username,
             message.content,
           )
         )
       }
 
       override fun onNewUser(user: User) {
-        broadcast(NewUserEvent(user.id.toString()))
+        broadcast(NewUserEvent(user.username.toString()))
       }
 
       override fun onUserDisconnected(user: User) {
-        broadcast(UserDisconnectedEvent(user.id.toString()))
+        broadcast(UserDisconnectedEvent(user.username.toString()))
       }
     })
   }

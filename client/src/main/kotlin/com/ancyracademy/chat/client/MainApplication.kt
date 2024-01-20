@@ -8,6 +8,8 @@ class MainApplication : Application() {
   private var client = Client()
 
   override fun start(stage: Stage) {
+    connect()
+
     val ui = ChatUI(client)
     val scene = Scene(ui.start())
 
@@ -16,7 +18,6 @@ class MainApplication : Application() {
     stage.show()
     println("Showing")
 
-    connect()
     println("Done connecting")
   }
 

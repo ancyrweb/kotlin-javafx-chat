@@ -1,6 +1,7 @@
 package com.ancyracademy.chat.protocol.responses
 
 import com.ancyracademy.chat.protocol.ProtocolMessage
+import java.io.Serializable
 import java.time.LocalDateTime
 
 class MessageListResponse(val list: Array<Message>) : ProtocolMessage() {
@@ -8,5 +9,5 @@ class MessageListResponse(val list: Array<Message>) : ProtocolMessage() {
     var author: String,
     var message: String,
     var date: LocalDateTime
-  )
+  ) : Serializable
 }

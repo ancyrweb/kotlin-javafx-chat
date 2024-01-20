@@ -12,6 +12,16 @@ import java.net.Socket
 import kotlin.concurrent.thread
 
 class Client() {
+  interface Listener {
+    fun onNewMessage(message: NewMessageEvent)
+    fun onNewUser(user: NewUserEvent)
+    fun onUserDisconnected(user: UserDisconnectedEvent)
+    fun onMessageList(messageList: MessageListResponse)
+    fun onUserList(userList: UserListResponse)
+  }
+
+  private var listeners = mutableListOf<Listener>()
+
   private lateinit var socket: Socket
   private lateinit var reader: ObjectInputStream
   private lateinit var writer: ObjectOutputStream
@@ -32,30 +42,36 @@ class Client() {
         when (message) {
           is NewMessageEvent -> {
             val protocolMessage = message as NewMessageEvent
-            println("${protocolMessage.author}: ${protocolMessage.message}")
+            listeners.forEach {
+              it.onNewMessage(protocolMessage)
+            }
           }
 
           is NewUserEvent -> {
             val protocolMessage = message as NewUserEvent
-            println("${protocolMessage.name} joined the chat")
+            listeners.forEach {
+              it.onNewUser(protocolMessage)
+            }
           }
 
           is UserDisconnectedEvent -> {
             val protocolMessage = message as UserDisconnectedEvent
-            println("${protocolMessage.name} left the chat")
+            listeners.forEach {
+              it.onUserDisconnected(protocolMessage)
+            }
           }
 
           is MessageListResponse -> {
             val protocolMessage = message as MessageListResponse
-            protocolMessage.list.forEach {
-              println("${it.author}: ${it.message}")
+            listeners.forEach {
+              it.onMessageList(protocolMessage)
             }
           }
 
           is UserListResponse -> {
             val protocolMessage = message as UserListResponse
-            protocolMessage.list.forEach {
-              println(it)
+            listeners.forEach {
+              it.onUserList(protocolMessage)
             }
           }
         }
@@ -65,5 +81,13 @@ class Client() {
 
   fun send(message: ProtocolMessage) {
     writer.writeObject(message)
+  }
+
+  fun addListener(listener: Listener) {
+    listeners.add(listener)
+  }
+
+  fun removeListener(listener: Listener) {
+    listeners.remove(listener)
   }
 }
