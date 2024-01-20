@@ -1,5 +1,6 @@
-package com.ancyracademy.chat.client
+package com.ancyracademy.chat.client.scenes.chat
 
+import com.ancyracademy.chat.client.Client
 import com.ancyracademy.chat.protocol.commands.SendMessageCommand
 import javafx.event.EventHandler
 import javafx.geometry.Pos
@@ -10,7 +11,7 @@ import javafx.scene.input.KeyEvent
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 
-class PromptController(private val client: Client) {
+class PromptController {
   var root: HBox
 
   init {
@@ -32,10 +33,11 @@ class PromptController(private val client: Client) {
   }
 
   fun getView() = root
+
   fun onSendMessage(input: TextField) {
     val message = input.text
     input.clear()
 
-    client.send(SendMessageCommand(message))
+    Client.send(SendMessageCommand(message))
   }
 }

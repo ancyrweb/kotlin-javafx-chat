@@ -1,28 +1,21 @@
 package com.ancyracademy.chat.client
 
 import javafx.application.Application
-import javafx.scene.Scene
 import javafx.stage.Stage
 
 class MainApplication : Application() {
-  private var client = Client()
 
   override fun start(stage: Stage) {
-    connect()
-
-    val ui = ChatUI(client)
-    val scene = Scene(ui.start())
-
     stage.title = "Chat - Client"
-    stage.scene = scene
-    stage.show()
-    println("Showing")
 
-    println("Done connecting")
-  }
+    Client.connect("localhost", 19999)
+    Navigator.initialize(stage)
+    Navigator.start()
 
-  private fun connect() {
-    client.connect("localhost", 19999)
+    stage.setOnCloseRequest {
+      Client.disconnect()
+      Navigator.clear()
+    }
   }
 }
 

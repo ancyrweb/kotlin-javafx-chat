@@ -9,9 +9,8 @@ import com.ancyracademy.chat.protocol.responses.UserListResponse
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.net.Socket
-import kotlin.concurrent.thread
 
-class Client() {
+object Client {
   interface Listener {
     fun onNewMessage(message: NewMessageEvent)
     fun onNewUser(user: NewUserEvent)
@@ -21,62 +20,72 @@ class Client() {
   }
 
   private var listeners = mutableListOf<Listener>()
-
   private lateinit var socket: Socket
-  private lateinit var reader: ObjectInputStream
   private lateinit var writer: ObjectOutputStream
+  private lateinit var receiver: MessageReceiverThread
 
-  init {
-    println("Client initialized")
+  internal class MessageReceiverThread(private val socket: Socket) : Thread() {
+    private var reader = ObjectInputStream(socket.getInputStream())
+    private var running = true
+
+    override fun run() {
+      var message: Any? = null
+      try {
+        while (running && reader.readObject().also { message = it } != null) {
+          when (message) {
+            is NewMessageEvent -> {
+              listeners.forEach {
+                it.onNewMessage(message as NewMessageEvent)
+              }
+            }
+
+            is NewUserEvent -> {
+              listeners.forEach {
+                it.onNewUser(message as NewUserEvent)
+              }
+            }
+
+            is UserDisconnectedEvent -> {
+              listeners.forEach {
+                it.onUserDisconnected(message as UserDisconnectedEvent)
+              }
+            }
+
+            is MessageListResponse -> {
+              listeners.forEach {
+                it.onMessageList(message as MessageListResponse)
+              }
+            }
+
+            is UserListResponse -> {
+              listeners.forEach {
+                it.onUserList(message as UserListResponse)
+              }
+            }
+          }
+        }
+      } catch (_: Exception) {
+      }
+    }
+
+    fun disconnect() {
+      running = false
+      reader.close()
+    }
   }
 
   fun connect(serverAddress: String, serverPort: Int) {
     socket = Socket(serverAddress, serverPort)
     writer = ObjectOutputStream(socket.getOutputStream())
 
-    thread {
-      reader = ObjectInputStream(socket.getInputStream())
+    receiver = MessageReceiverThread(socket)
+    receiver.start()
+  }
 
-      var message: Any
-      while (reader.readObject().also { message = it } != null) {
-        when (message) {
-          is NewMessageEvent -> {
-            val protocolMessage = message as NewMessageEvent
-            listeners.forEach {
-              it.onNewMessage(protocolMessage)
-            }
-          }
-
-          is NewUserEvent -> {
-            val protocolMessage = message as NewUserEvent
-            listeners.forEach {
-              it.onNewUser(protocolMessage)
-            }
-          }
-
-          is UserDisconnectedEvent -> {
-            val protocolMessage = message as UserDisconnectedEvent
-            listeners.forEach {
-              it.onUserDisconnected(protocolMessage)
-            }
-          }
-
-          is MessageListResponse -> {
-            val protocolMessage = message as MessageListResponse
-            listeners.forEach {
-              it.onMessageList(protocolMessage)
-            }
-          }
-
-          is UserListResponse -> {
-            val protocolMessage = message as UserListResponse
-            listeners.forEach {
-              it.onUserList(protocolMessage)
-            }
-          }
-        }
-      }
-    }
+  fun disconnect() {
+    receiver.disconnect()
+    writer.close()
+    socket.close()
   }
 
   fun send(message: ProtocolMessage) {
