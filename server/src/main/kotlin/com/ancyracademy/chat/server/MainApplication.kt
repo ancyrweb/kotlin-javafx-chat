@@ -4,13 +4,11 @@ import javafx.application.Application
 import javafx.scene.Scene
 import javafx.scene.layout.BorderPane
 import javafx.stage.Stage
-import kotlin.concurrent.thread
 
 class MainApplication : Application() {
+  private val server = Server()
   override fun start(stage: Stage) {
-    thread {
-      Server().start()
-    }
+    server.start()
 
     val root = BorderPane()
     val scene = Scene(root)

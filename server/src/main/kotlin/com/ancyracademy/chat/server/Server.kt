@@ -7,44 +7,87 @@ import com.ancyracademy.chat.protocol.commands.SendMessageCommand
 import com.ancyracademy.chat.protocol.events.NewMessageEvent
 import com.ancyracademy.chat.protocol.events.NewUserEvent
 import com.ancyracademy.chat.protocol.events.UserDisconnectedEvent
-import com.ancyracademy.chat.protocol.responses.MessageListResponse
-import com.ancyracademy.chat.protocol.responses.UserListResponse
+import com.ancyracademy.chat.server.core.App
+import com.ancyracademy.chat.server.core.Message
+import com.ancyracademy.chat.server.core.User
 import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.Volatile
+import kotlin.concurrent.thread
 
 class Server {
   private val executorService = Executors.newFixedThreadPool(5)
-  private val clients = mutableListOf<ClientHandler>()
-  private var clientIndex = 0
-  private val messages = mutableListOf<Message>()
+  private val clients = mutableListOf<ClientConnection>()
 
-  data class Message(
-    var author: String,
-    var message: String
-  )
-  
+  private val app = App()
+  private var serverSocket: ServerSocket? = null
+
+  @Volatile
+  private var running = false
+
+  init {
+    // Note : the server is running at all times, so we can safely add a listener
+    // Otherwise we would have to clear the listener when the server is stopped.
+    app.addListener(object : App.Listener {
+      override fun onNewMessage(message: Message) {
+        broadcast(
+          NewMessageEvent(
+            message.author.id.toString(),
+            message.content,
+          )
+        )
+      }
+
+      override fun onNewUser(user: User) {
+        broadcast(NewUserEvent(user.id.toString()))
+      }
+
+      override fun onUserDisconnected(user: User) {
+        broadcast(UserDisconnectedEvent(user.id.toString()))
+      }
+    })
+  }
+
   fun start() {
     val port = 19999
-    val serverSocket = ServerSocket(port)
+    running = true
 
-    println("Server listening on port $port")
+    thread {
+      serverSocket = ServerSocket(port)
+      println("Server listening on port $port")
 
-    while (true) {
-      val socket = serverSocket.accept()
-      println("New client connected: ${socket.inetAddress.hostAddress}")
+      while (running) {
+        val socket = serverSocket?.accept() ?: continue
 
-      val clientInfo = ClientInfo("anonymous-${clientIndex++}")
-      val client =
-        ClientHandler(socket, clientInfo)
+        println("New client connected: ${socket.inetAddress.hostAddress}")
 
-      broadcast(NewUserEvent(clientInfo.name))
+        val user = app.connect()
+        val client =
+          ClientConnection(socket, user)
 
-      clients.add(client)
-      executorService.execute(client)
+        clients.add(client)
+        executorService.execute(client)
+      }
+    }
+  }
+
+  fun stop() {
+    running = false
+    serverSocket?.close()
+
+    executorService.shutdown()
+
+    try {
+      if (!executorService.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+        executorService.shutdownNow()
+      }
+    } catch (e: InterruptedException) {
+      executorService.shutdownNow()
     }
   }
 
@@ -52,11 +95,9 @@ class Server {
     clients.forEach { it.send(message) }
   }
 
-  inner class ClientInfo(public val name: String) {}
-
-  inner class ClientHandler(
+  inner class ClientConnection(
     private val socket: Socket,
-    private val info: ClientInfo
+    private val user: User
   ) : Runnable {
     private val reader: ObjectInputStream =
       ObjectInputStream(socket.getInputStream())
@@ -69,43 +110,16 @@ class Server {
         while (reader.readObject().also { rawMessage = it } != null) {
           when (rawMessage) {
             is SendMessageCommand -> {
-              val command = rawMessage as SendMessageCommand
-              messages.add(
-                Message(
-                  info.name,
-                  command.message
-                )
-              )
-
-              broadcast(
-                NewMessageEvent(
-                  info.name,
-                  command.message
-                )
-              )
-
+              app.handle(rawMessage as SendMessageCommand, user)
             }
 
             is GetUsersCommand -> {
-              val users =
-                clients.map { UserListResponse.User(it.info.name) }
-                  .toTypedArray()
-
-              val response = UserListResponse(users)
+              val response = app.handle(rawMessage as GetUsersCommand)
               send(response)
             }
 
             is GetMessagesCommand -> {
-              val messages =
-                messages.map {
-                  MessageListResponse.Message(
-                    it.author,
-                    it.message
-                  )
-                }
-                  .toTypedArray()
-
-              val response = MessageListResponse(messages)
+              val response = app.handle(rawMessage as GetMessagesCommand)
               send(response)
             }
           }
@@ -113,9 +127,8 @@ class Server {
       } catch (e: IOException) {
         println("Client disconnected: ${socket.inetAddress.hostAddress}")
         clients.remove(this)
+        app.disconnect(user)
         socket.close()
-
-        broadcast(UserDisconnectedEvent(info.name))
       }
     }
 
