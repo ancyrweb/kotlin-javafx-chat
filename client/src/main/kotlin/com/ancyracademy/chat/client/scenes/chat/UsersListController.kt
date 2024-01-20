@@ -1,6 +1,7 @@
 package com.ancyracademy.chat.client.scenes.chat
 
-import com.ancyracademy.chat.client.Client
+import com.ancyracademy.chat.client.client.Gateway
+import com.ancyracademy.chat.client.client.GatewayObservable
 import com.ancyracademy.chat.client.interfaces.Disposable
 import com.ancyracademy.chat.protocol.commands.GetUsersCommand
 import com.ancyracademy.chat.protocol.events.NewMessageEvent
@@ -13,7 +14,7 @@ import javafx.scene.control.ListView
 
 class UsersListController : Disposable {
   private val root: ListView<String> = ListView()
-  private val listener = object : Client.Listener {
+  private val listener = object : GatewayObservable.Listener {
     override fun onNewMessage(message: NewMessageEvent) {}
     override fun onNewUser(user: NewUserEvent) {
       Platform.runLater {
@@ -37,13 +38,13 @@ class UsersListController : Disposable {
   }
 
   init {
-    Client.addListener(listener)
-    Client.send(GetUsersCommand())
+    Gateway.addListener(listener)
+    Gateway.send(GetUsersCommand())
   }
 
   fun getView() = root
 
   override fun dispose() {
-    Client.removeListener(listener)
+    Gateway.removeListener(listener)
   }
 }

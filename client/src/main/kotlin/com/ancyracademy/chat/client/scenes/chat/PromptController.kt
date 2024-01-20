@@ -1,6 +1,6 @@
 package com.ancyracademy.chat.client.scenes.chat
 
-import com.ancyracademy.chat.client.Client
+import com.ancyracademy.chat.client.client.Gateway
 import com.ancyracademy.chat.protocol.commands.SendMessageCommand
 import javafx.event.EventHandler
 import javafx.geometry.Pos
@@ -38,6 +38,6 @@ class PromptController {
     val message = input.text
     input.clear()
 
-    Client.send(SendMessageCommand(message))
+    Gateway.send(SendMessageCommand(message))
   }
 }

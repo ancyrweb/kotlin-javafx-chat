@@ -1,5 +1,6 @@
 package com.ancyracademy.chat.client
 
+import com.ancyracademy.chat.client.client.Gateway
 import javafx.application.Application
 import javafx.stage.Stage
 
@@ -8,12 +9,12 @@ class MainApplication : Application() {
   override fun start(stage: Stage) {
     stage.title = "Chat - Client"
 
-    Client.connect("localhost", 19999)
+    Gateway.connect("localhost", 19999)
     Navigator.initialize(stage)
     Navigator.start()
 
     stage.setOnCloseRequest {
-      Client.disconnect()
+      Gateway.disconnect()
       Navigator.clear()
     }
   }

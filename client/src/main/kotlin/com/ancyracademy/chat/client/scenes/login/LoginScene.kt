@@ -1,7 +1,7 @@
 package com.ancyracademy.chat.client.scenes.login
 
-import com.ancyracademy.chat.client.Client
 import com.ancyracademy.chat.client.Navigator
+import com.ancyracademy.chat.client.client.Gateway
 import com.ancyracademy.chat.client.interfaces.AppScene
 import com.ancyracademy.chat.protocol.commands.LoginCommand
 import javafx.geometry.Insets
@@ -52,7 +52,7 @@ class LoginScene : AppScene() {
       return
     }
 
-    Client.send(LoginCommand(username))
+    Gateway.send(LoginCommand(username))
     Navigator.navigate("Chat")
   }
 }

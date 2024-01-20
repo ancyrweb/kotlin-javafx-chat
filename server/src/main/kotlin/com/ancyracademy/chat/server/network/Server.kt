@@ -1,4 +1,4 @@
-package com.ancyracademy.chat.server
+package com.ancyracademy.chat.server.network
 
 import com.ancyracademy.chat.protocol.ProtocolMessage
 import com.ancyracademy.chat.protocol.commands.*
@@ -29,8 +29,6 @@ class Server {
   private var running = false
 
   init {
-    // Note : the server is running at all times, so we can safely add a listener
-    // Otherwise we would have to clear the listener when the server is stopped.
     app.addListener(object : App.Listener {
       override fun onNewMessage(message: Message) {
         broadcast(
@@ -42,11 +40,11 @@ class Server {
       }
 
       override fun onNewUser(user: User) {
-        broadcast(NewUserEvent(user.username.toString()))
+        broadcast(NewUserEvent(user.username))
       }
 
       override fun onUserDisconnected(user: User) {
-        broadcast(UserDisconnectedEvent(user.username.toString()))
+        broadcast(UserDisconnectedEvent(user.username))
       }
     })
   }

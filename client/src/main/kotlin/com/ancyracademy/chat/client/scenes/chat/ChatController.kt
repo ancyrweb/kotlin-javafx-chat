@@ -1,6 +1,7 @@
 package com.ancyracademy.chat.client.scenes.chat
 
-import com.ancyracademy.chat.client.Client
+import com.ancyracademy.chat.client.client.Gateway
+import com.ancyracademy.chat.client.client.GatewayObservable
 import com.ancyracademy.chat.client.interfaces.Disposable
 import com.ancyracademy.chat.protocol.commands.GetMessagesCommand
 import com.ancyracademy.chat.protocol.events.NewMessageEvent
@@ -13,7 +14,7 @@ import javafx.scene.control.TextArea
 
 class ChatController : Disposable {
   private val root = TextArea()
-  private val listener = object : Client.Listener {
+  private val listener = object : GatewayObservable.Listener {
     override fun onNewMessage(message: NewMessageEvent) {
       Platform.runLater {
         root.appendText("${message.author}: ${message.message}\n")
@@ -48,13 +49,13 @@ class ChatController : Disposable {
 
   init {
     root.isEditable = false
-    Client.addListener(listener)
-    Client.send(GetMessagesCommand())
+    Gateway.addListener(listener)
+    Gateway.send(GetMessagesCommand())
   }
 
   fun getView() = root
 
   override fun dispose() {
-    Client.removeListener(listener)
+    Gateway.removeListener(listener)
   }
 }

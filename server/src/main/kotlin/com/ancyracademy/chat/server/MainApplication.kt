@@ -1,5 +1,6 @@
 package com.ancyracademy.chat.server
 
+import com.ancyracademy.chat.server.network.Server
 import javafx.application.Application
 import javafx.scene.Scene
 import javafx.scene.layout.BorderPane
