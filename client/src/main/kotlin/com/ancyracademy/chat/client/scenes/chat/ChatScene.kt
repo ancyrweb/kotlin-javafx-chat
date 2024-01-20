@@ -8,8 +8,7 @@ class ChatScene : AppScene() {
   private lateinit var messageSenderUi: PromptController
   private lateinit var userListUi: UsersListController
   private lateinit var chat: ChatController
-
-
+  
   override fun render(): Scene {
     val root = BorderPane()
 
